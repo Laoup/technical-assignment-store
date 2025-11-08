@@ -27,9 +27,9 @@ export class AdminStore extends Store {
     let store
 
     const splited = key.split(":")
-    // Should be replace by this.values.get(splited[0]) as Store ?
-    if (splited[0] === "user") {
-      store = this.values.get("user") as UserStore;
+    // Nested
+    if (splited[0]) {
+      store = this.values.get(splited[0]) as Store;
     }
 
     if (splited.length > 1 && store)
@@ -44,14 +44,13 @@ export class AdminStore extends Store {
     }
 
     const splited = path.split(":");
-    if (splited[0] === "user") {
-      // Should be replace by this.values.get(splited[0]) as Store ? (and rename userStore into store)
-      const userStore = this.values.get("user") as UserStore;
+    if (splited[0]) {
+      const store = this.values.get(splited[0]) as Store;
       if (splited.length === 1) {
-        return userStore;
+        return store;
       }
       // Nested
-      return userStore.read(splited.slice(1).join(":"));
+      return store.read(splited.slice(1).join(":"));
     }
 
     return super.read(path);
@@ -62,9 +61,8 @@ export class AdminStore extends Store {
     
     const splited = key.split(":")
 
-    // Should be replace by this.values.get(splited[0]) as Store ?
-    if (splited[0] === "user") {
-      store = this.values.get("user") as UserStore
+    if (splited[0]) {
+      store = this.values.get(splited[0]) as Store
     }
 
     if (splited.length > 1 && store)
@@ -79,13 +77,12 @@ export class AdminStore extends Store {
     }
 
     const splited = path.split(":");
-    if (splited[0] === "user") {
-      // Should be replace by this.values.get(splited[0]) as Store ? (Then need to change the error)
-      const userStore = this.values.get("user") as UserStore;
+    if (splited[0]) {
+      const store = this.values.get(splited[0]) as Store;
       if (splited.length === 1) {
-        throw new Error("Cannot replace user store");
+        throw new Error("Cannot replace a store");
       }
-      return userStore.write(splited.slice(1).join(":"), value);
+      return store.write(splited.slice(1).join(":"), value);
     }
 
     return super.write(path, value);
