@@ -88,7 +88,6 @@ describe("Nested Store Operations", () => {
     adminStore = new AdminStore(userStore);
   });
 
-  //
   it("should allow writing and reading nested keys in user store", () => {
     userStore.write("profile:name", "John Smith");
     expect(userStore.read("profile:name")).toBe("John Smith");
@@ -98,7 +97,6 @@ describe("Nested Store Operations", () => {
     expect(adminStore.read("user:name")).toBe("John Doe");
   });
 
-  // carrefull here the nested = we write the key as "profile:name"
   it("should allow writing and reading nested keys in user from admin store", () => {
     adminStore.write("user:profile:name", "John Smith");
     expect(adminStore.read("user:profile:name")).toBe("John Smith");
@@ -124,7 +122,6 @@ describe("Nested Store Operations", () => {
     const store = new Store();
     const entries: JSONObject = { value: "value", store: { value: "value" } };
     store.write("deep", entries);
-    // console.log(store.read("deep:store"))
     const cStore = store.read("deep:store") as Store;
     cStore.write("deep", entries);
     expect(store.read("deep:store:deep:store:value")).toBe("value");
@@ -240,7 +237,6 @@ These tests ensure that default policies are correctly applied to keys with no e
 
 */
 
-//
 describe("Test Store - Default Policy Behavior", () => {
   it("disallows writing a key with with default read permission", () => {
     class TestStore extends Store {
@@ -287,32 +283,32 @@ These tests verify the behavior of the system when keys are overwritten or permi
 
 */
 
-// describe("Test Store - Behavior when Same Key is Used Multiple Times", () => {
-//   it("overwrites key with new value", () => {
-//     const store = new Store();
-//     store.defaultPolicy = "rw";
-//     store.write("key", "value1");
-//     store.write("key", "value2");
-//     expect(store.read("key")).toBe("value2");
-//   });
+describe("Test Store - Behavior when Same Key is Used Multiple Times", () => {
+  it("overwrites key with new value", () => {
+    const store = new Store();
+    store.defaultPolicy = "rw";
+    store.write("key", "value1");
+    store.write("key", "value2");
+    expect(store.read("key")).toBe("value2");
+  });
 
-//   it("updates key permissions", () => {
-//     class TestStore extends Store {
-//       @Restrict("rw")
-//       public prop?: string;
-//     }
-//     const testStore = new TestStore();
-//     testStore.write("prop", "value1");
-//     expect(testStore.allowedToRead("prop")).toBe(true);
-//     expect(testStore.allowedToWrite("prop")).toBe(true);
+  it("updates key permissions", () => {
+    class TestStore extends Store {
+      @Restrict("rw")
+      public prop?: string;
+    }
+    const testStore = new TestStore();
+    testStore.write("prop", "value1");
+    expect(testStore.allowedToRead("prop")).toBe(true);
+    expect(testStore.allowedToWrite("prop")).toBe(true);
 
-//     // Change permissions
-//     Restrict("r")(testStore, "prop");
+    // Change permissions
+    Restrict("r")(testStore, "prop");
 
-//     expect(testStore.allowedToRead("prop")).toBe(true);
-//     expect(testStore.allowedToWrite("prop")).toBe(false);
-//   });
-// });
+    expect(testStore.allowedToRead("prop")).toBe(true);
+    expect(testStore.allowedToWrite("prop")).toBe(false);
+  });
+});
 
 /*
 
@@ -322,19 +318,19 @@ These tests verify that nested keys correctly inherit permissions from their par
 
 */
 
-// describe("Test Store - Permission Inheritance", () => {
-//   it("nested key inherits parent key's permissions", () => {
-//     class ParentStore extends Store {
-//       @Restrict("r")
-//       public parentProp = lazy(() => new ChildStore());
-//     }
-//     class ChildStore extends ParentStore { }
-//     const baseChildStore = new ChildStore();
-//     const nestedChildStore = baseChildStore.read(
-//       "parentProp:parentProp:parentProp"
-//     ) as Store;
-//     expect(nestedChildStore).toBeInstanceOf(ChildStore);
-//     expect(baseChildStore.allowedToWrite("parentProp")).toBe(false);
-//     expect(nestedChildStore.allowedToWrite("parentProp")).toBe(false);
-//   });
-// });
+describe("Test Store - Permission Inheritance", () => {
+  it("nested key inherits parent key's permissions", () => {
+    class ParentStore extends Store {
+      @Restrict("r")
+      public parentProp = lazy(() => new ChildStore());
+    }
+    class ChildStore extends ParentStore { }
+    const baseChildStore = new ChildStore();
+    const nestedChildStore = baseChildStore.read(
+      "parentProp:parentProp:parentProp"
+    ) as Store;
+    expect(nestedChildStore).toBeInstanceOf(ChildStore);
+    expect(baseChildStore.allowedToWrite("parentProp")).toBe(false);
+    expect(nestedChildStore.allowedToWrite("parentProp")).toBe(false);
+  });
+});

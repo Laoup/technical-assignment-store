@@ -20,12 +20,28 @@ export interface IStore {
   entries(): JSONObject;
 }
 
-// export function Restrict(...params: unknown[]): any {
-// }
-
 export function Restrict(policy: Permission = "none"): any {
   return function (target: any, propertyKey: string) {
-    
+
+      // If called on an living instance (target already has policies Map, because it's have been instantiated)
+    if (target.policies instanceof Map) {
+      // update the policy for this specific key
+      target.policies.set(propertyKey, policy);
+      // Redefine the property descriptor to use the new policy
+      Object.defineProperty(target, propertyKey, {
+        get: function () {
+          return this.read(propertyKey)
+        },
+        set: function (this: Store, newVal: StoreValue) {
+          this.policies.set(propertyKey, policy)
+          this.values.set(propertyKey, newVal)
+        },
+        enumerable: true,
+        configurable: true
+      });
+      return;
+    }
+
     // Create a hidden Map and add a restriction on a property (who doesn't exist for now)
     if (!target.constructor._restrictedProps) {
       target.constructor._restrictedProps = new Map<string, Permission>();
@@ -126,10 +142,8 @@ export class Store implements IStore {
       if (value instanceof Store) {
         value = value.read(segments.slice(i).join(":"));
         break; // The nested store handles the rest of the path
-      } else {
-        // TODO: Can we remove the else ?
-        throw new Error(`Cannot read property "${segments[i]}" of non-Store value`);
-      }
+      } 
+
     }
     
     return value;
@@ -235,20 +249,17 @@ export class Store implements IStore {
       ...(this.values ? Array.from(this.values.keys()) : [])
     ])
 
-    console.log("keys", keys)
     keys.forEach(key => {
       if (!this.allowedToRead(key))
         return
 
       if (this.values?.has(key)) {
-        console.log(this.values.get(key))
         res[key] = this.toJSONValue(this.values.get(key));
       }
       
       return (this as any)[key];
     })
 
-    console.log(res)
     return res
   }
 
