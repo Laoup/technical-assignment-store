@@ -24,14 +24,18 @@ export interface IStore {
 // }
 
 export function Restrict(policy: Permission = "none"): any {
-  return function (target: any, propertyKey: string) {   
+  return function (target: any, propertyKey: string) {
+    
+    // Create a hidden Map and add a restriction on a property (who doesn't exist for now)
+    if (!target.constructor._restrictedProps) {
+      target.constructor._restrictedProps = new Map<string, Permission>();
+    }
+    target.constructor._restrictedProps.set(propertyKey, policy);
     Object.defineProperty(target, propertyKey, {
       get: function (/*this: Store*/) {
         return this.read(/*key*/propertyKey)
       },
       set: function (this: Store, newVal: StoreValue) {
-        // console.log(propertyKey)
-        // console.log(newVal)
         this.policies.set(propertyKey, policy)
         this.values.set(propertyKey, newVal)
       },
@@ -48,10 +52,20 @@ export class Store implements IStore {
   policies: Map<string, Permission> = new Map()
   values: Map<string, StoreValue> = new Map()
 
+  constructor() {
+    // Initialize policies if decorator defined restrictedProperties
+    const restrictedProps = (this.constructor as any)._restrictedProps;
+
+    if (restrictedProps) {
+      restrictedProps.forEach((policy: Permission, key: string) => {
+        this.policies.set(key, policy);        
+      })
+    }
+  }
+
   private resolveValue(value: StoreValue): StoreResult {
-    // TODO
-    // if (typeof value === "function")
-      //lazy
+    if (typeof value === "function")
+      return value() as StoreResult
 
     return value as StoreResult
   }
@@ -214,6 +228,47 @@ export class Store implements IStore {
   }
 
   entries(): JSONObject {
-    throw new Error("Method not implemented.");
+    const res: JSONObject = {}
+
+    const keys = new Set<string>([
+      ...Object.keys(this),
+      ...(this.values ? Array.from(this.values.keys()) : [])
+    ])
+
+    console.log("keys", keys)
+    keys.forEach(key => {
+      if (!this.allowedToRead(key))
+        return
+
+      if (this.values?.has(key)) {
+        console.log(this.values.get(key))
+        res[key] = this.toJSONValue(this.values.get(key));
+      }
+      
+      return (this as any)[key];
+    })
+
+    console.log(res)
+    return res
+  }
+
+  // convert a value into a JSON-friendly value
+  protected toJSONValue(v: unknown): JSONValue {
+    if (v instanceof Store) return v.entries();
+
+    if (Array.isArray(v)) return v.map(x => this.toJSONValue(x));
+
+    if (v && typeof v === "object") {
+      const obj: JSONObject = {};
+      for (const key of Object.keys(v as Record<string, unknown>)) {
+        const val = (v as any)[key];
+        if (typeof val !== "function") obj[key] = this.toJSONValue(val);
+      }
+      return obj;
+    }
+    if (typeof v === "function") {
+      return null; // not representable in JSON;
+    }
+    return v as JSONPrimitive;
   }
 }

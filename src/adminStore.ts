@@ -10,12 +10,12 @@ export class AdminStore extends Store {
   @Restrict()
   name: string = "John Doe";
   
-  // @Restrict("rw")
-  // getCredentials = lazy(() => {
-  //   const credentialStore = new Store();
-  //   credentialStore.writeEntries({ username: "user1" });
-  //   return credentialStore;
-  // });
+  @Restrict("rw")
+  getCredentials = lazy(() => {
+    const credentialStore = new Store();
+    credentialStore.writeEntries({ username: "user1" });
+    return credentialStore;
+  });
 
   constructor(user: UserStore) {
     super();
@@ -23,17 +23,20 @@ export class AdminStore extends Store {
     this.user = user;
   }
 
-  allowedToRead(key: string): boolean {
+ allowedToRead(key: string): boolean {
     let store
 
     const splited = key.split(":")
     // Nested
     if (splited[0]) {
-      store = this.values.get(splited[0]) as Store;
+      store = this.values.get(splited[0]);
     }
 
     if (splited.length > 1 && store)
-      return store.allowedToRead(splited.slice(1).join(":"));
+      if (typeof store === "function")
+        store = store()
+      if (store instanceof Store)
+        return store.allowedToRead(splited.slice(1).join(":"));
 
     return super.allowedToRead(key)
   }
@@ -44,29 +47,44 @@ export class AdminStore extends Store {
     }
 
     const splited = path.split(":");
+    
     if (splited[0]) {
-      const store = this.values.get(splited[0]) as Store;
-      if (splited.length === 1) {
-        return store;
+      // Get the raw value and resolve it (handles lazy functions)
+      let storeValue = this.values.get(splited[0]);
+      
+      // Resolve lazy functions
+      if (typeof storeValue === "function") {
+        storeValue = storeValue();
       }
-      // Nested
-      return store.read(splited.slice(1).join(":"));
+      
+      if (storeValue instanceof Store) {
+        if (splited.length === 1) {
+          return storeValue;
+        }
+        // Nested read
+        return storeValue.read(splited.slice(1).join(":"));
+      }
     }
 
     return super.read(path);
   }
 
   allowedToWrite(key: string): boolean {
-    let store
+    let value
     
     const splited = key.split(":")
 
     if (splited[0]) {
-      store = this.values.get(splited[0]) as Store
+      value = this.values.get(splited[0])
     }
 
-    if (splited.length > 1 && store)
-      return store.allowedToWrite(splited.slice(1).join(":"));
+    if (splited.length > 1 && value) {
+      if (typeof value === "function")
+        value = value()
+
+      if (value instanceof Store)
+        return value.allowedToWrite(splited.slice(1).join(":"));
+    }
 
     return super.allowedToWrite(key)
   }
@@ -77,12 +95,22 @@ export class AdminStore extends Store {
     }
 
     const splited = path.split(":");
+    
     if (splited[0]) {
-      const store = this.values.get(splited[0]) as Store;
-      if (splited.length === 1) {
-        throw new Error("Cannot replace a store");
+      // Get the raw value and resolve it (handles lazy functions)
+      let storeValue = this.values.get(splited[0]);
+      
+      // Resolve lazy functions
+      if (typeof storeValue === "function") {
+        storeValue = storeValue();
       }
-      return store.write(splited.slice(1).join(":"), value);
+      
+      if (storeValue instanceof Store) {
+        if (splited.length === 1) {
+          throw new Error("Cannot replace a store");
+        }
+        return storeValue.write(splited.slice(1).join(":"), value);
+      }
     }
 
     return super.write(path, value);
@@ -90,48 +118,53 @@ export class AdminStore extends Store {
 
   //OLD
 
-  // allowedToRead(key: string): boolean {
-  //   const splited = key.split(":")
-  //   if (splited[0] === "user") {
-  //     return this.user.allowedToRead(splited[1])
-  //   }
-  //   return super.allowedToRead(key)
-  // }
-
   // read(path: string): StoreResult {
   //   if (!this.allowedToRead(path)) {
   //     throw new Error("Not allowed to read");
   //   }
 
-  //   if (path.includes(":")) {
-  //     const splited = path.split(":")
-  //     if (splited[0] === "user")
-  //       return this.user.read(splited[1])
+  //   const splited = path.split(":");
+  //   if (splited[0]) {
+  //     const store = this.values.get(splited[0]) as Store;
+  //     if (splited.length === 1) {
+  //       return store;
+  //     }
+  //     // Nested
+  //     return store.read(splited.slice(1).join(":"));
   //   }
 
-  //   return super.read(path)
+  //   return super.read(path);
   // }
 
-  // //
   // allowedToWrite(key: string): boolean {
-  //   const splited = key.split(":")
-  //   // Can we consider this if only check if not null because we follow a format ? (same for allowedToRead)
-  //   if (splited[0] === "user") {
-  //     return this.user.allowedToWrite(splited[1])
-  //   }
+  //   let store
     
+  //   const splited = key.split(":")
+
+  //   if (splited[0]) {
+  //     store = this.values.get(splited[0]) as Store
+  //   }
+
+  //   if (splited.length > 1 && store)
+  //     return store.allowedToWrite(splited.slice(1).join(":"));
+
   //   return super.allowedToWrite(key)
   // }
 
   // write(path: string, value: StoreValue): StoreValue {
   //   if (!this.allowedToWrite(path)) {
-  //     throw new Error("Not allowed to write")
+  //     throw new Error("Not allowed to write");
   //   }
 
-  //   if (path.includes(":")) {
-  //     const splited = path.split(":")
-  //     if (splited[0] === "user")
-  //       return this.user.write(splited[1], value)
+  //   const splited = path.split(":");
+  //   if (splited[0]) {
+  //     const store = this.values.get(splited[0]) as Store;
+  //     if (splited.length === 1) {
+  //       throw new Error("Cannot replace a store");
+  //     }
+  //     return store.write(splited.slice(1).join(":"), value);
   //   }
+
+  //   return super.write(path, value);
   // }
 }

@@ -139,18 +139,18 @@ This tests the ability of the AdminStore class to read from a function result.
 
 */
 
-// describe("AdminStore class - Function Read", () => {
-//   let adminStore: AdminStore;
+describe("AdminStore class - Function Read", () => {
+  let adminStore: AdminStore;
 
-//   beforeEach(() => {
-//     const userStore = new UserStore();
-//     adminStore = new AdminStore(userStore);
-//   });
+  beforeEach(() => {
+    const userStore = new UserStore();
+    adminStore = new AdminStore(userStore);
+  });
 
-//   it("should be allowed to read from a function result", () => {
-//     expect(adminStore.read("getCredentials:username")).toBe("user1");
-//   });
-// });
+  it("should be allowed to read from a function result", () => {
+    expect(adminStore.read("getCredentials:username")).toBe("user1");
+  });
+});
 
 /*
 
@@ -160,38 +160,38 @@ These tests validate the behavior of a restricted store, ensuring that restricte
 
 */
 
-// describe("Restricted Store", () => {
-//   let store: Store;
+describe("Restricted Store", () => {
+  let store: Store;
 
-//   beforeEach(() => {
-//     store = new Store();
-//     store.defaultPolicy = "none"; // Restrict all keys
-//   });
+  beforeEach(() => {
+    store = new Store();
+    store.defaultPolicy = "none"; // Restrict all keys
+  });
 
-//   it("write restricted key", () => {
-//     expect(() => {
-//       return store.write("restrictedKey", "testValue");
-//     }).toThrow(Error);
-//   });
+  it("write restricted key", () => {
+    expect(() => {
+      return store.write("restrictedKey", "testValue");
+    }).toThrow(Error);
+  });
 
-//   it("read restricted key", () => {
-//     expect(() => {
-//       return store.read("restrictedKey");
-//     }).toThrow(Error);
-//   });
+  it("read restricted key", () => {
+    expect(() => {
+      return store.read("restrictedKey");
+    }).toThrow(Error);
+  });
 
-//   it("write nested restricted key", () => {
-//     expect(() => {
-//       return store.write("nested:restrictedKey", "testValue");
-//     }).toThrow(Error);
-//   });
+  it("write nested restricted key", () => {
+    expect(() => {
+      return store.write("nested:restrictedKey", "testValue");
+    }).toThrow(Error);
+  });
 
-//   it("read nested restricted key", () => {
-//     expect(() => {
-//       return store.read("nested:restrictedKey");
-//     }).toThrow(Error);
-//   });
-// });
+  it("read nested restricted key", () => {
+    expect(() => {
+      return store.read("nested:restrictedKey");
+    }).toThrow(Error);
+  });
+});
 
 /*
 
@@ -201,36 +201,36 @@ These tests ensure that decorators work as expected, especially when it comes to
 
 */
 
-// describe("Test Store - Decorators", () => {
-//   it("trying to set restricted property", () => {
-//     class TestStore extends Store {
-//       @Restrict("none")
-//       public restrictedProp?: string;
-//     }
-//     const testStore = new TestStore();
-//     expect(() => {
-//       testStore.write("restrictedProp", "new value");
-//     }).toThrow(Error);
-//   });
+describe("Test Store - Decorators", () => {
+  it("trying to set restricted property", () => {
+    class TestStore extends Store {
+      @Restrict("none")
+      public restrictedProp?: string;
+    }
+    const testStore = new TestStore();
+    expect(() => {
+      testStore.write("restrictedProp", "new value");
+    }).toThrow(Error);
+  });
 
-//   it("entries method shows restricted properties", () => {
-//     class TestStore extends Store {
-//       @Restrict("r")
-//       public readableProperty = "test";
-//     }
-//     const testStore = new TestStore();
-//     expect(testStore.entries()).toHaveProperty("readableProperty", "test");
-//   });
+  it("entries method shows restricted properties", () => {
+    class TestStore extends Store {
+      @Restrict("r")
+      public readableProperty = "test";
+    }
+    const testStore = new TestStore();
+    expect(testStore.entries()).toHaveProperty("readableProperty", "test");
+  });
 
-//   it("entries method hides restricted properties", () => {
-//     class TestStore extends Store {
-//       @Restrict("none")
-//       public restrictedProp = "test";
-//     }
-//     const testStore = new TestStore();
-//     expect(testStore.entries()).not.toHaveProperty("restrictedProp");
-//   });
-// });
+  it("entries method hides restricted properties", () => {
+    class TestStore extends Store {
+      @Restrict("none")
+      public restrictedProp = "test";
+    }
+    const testStore = new TestStore();
+    expect(testStore.entries()).not.toHaveProperty("restrictedProp");
+  });
+});
 
 /*
 
@@ -240,27 +240,28 @@ These tests ensure that default policies are correctly applied to keys with no e
 
 */
 
-// describe("Test Store - Default Policy Behavior", () => {
-//   it("disallows writing a key with with default read permission", () => {
-//     class TestStore extends Store {
-//       public defaultPolicy: Permission = "r";
-//       public defaultRestrictedProp?: string;
-//     }
-//     const testStore = new TestStore();
-//     expect(() => {
-//       testStore.write("defaultRestrictedProp", "testValue");
-//     }).toThrow(Error);
-//   });
+//
+describe("Test Store - Default Policy Behavior", () => {
+  it("disallows writing a key with with default read permission", () => {
+    class TestStore extends Store {
+      public defaultPolicy: Permission = "r";
+      public defaultRestrictedProp?: string;
+    }
+    const testStore = new TestStore();
+    expect(() => {
+      testStore.write("defaultRestrictedProp", "testValue");
+    }).toThrow(Error);
+  });
 
-//   it("allows writing a key with no explicit permissions", () => {
-//     class TestStore extends Store {
-//       public defaultNonRestrictedProp?: string;
-//     }
-//     const testStore = new TestStore();
-//     testStore.write("defaultNonRestrictedProp", "testValue");
-//     expect(testStore.read("defaultNonRestrictedProp")).toBe("testValue");
-//   });
-// });
+  it("allows writing a key with no explicit permissions", () => {
+    class TestStore extends Store {
+      public defaultNonRestrictedProp?: string;
+    }
+    const testStore = new TestStore();
+    testStore.write("defaultNonRestrictedProp", "testValue");
+    expect(testStore.read("defaultNonRestrictedProp")).toBe("testValue");
+  });
+});
 
 /*
 
@@ -270,13 +271,13 @@ These tests ensure that the system can correctly handle multi-level nested keys.
 
 */
 
-// describe("Test Store - Multiple Levels of Nested Keys", () => {
-//   it("allows writing and reading multi-level nested keys", () => {
-//     const store = new Store();
-//     store.write("level1:level2:level3", "testValue");
-//     expect(store.read("level1:level2:level3")).toBe("testValue");
-//   });
-// });
+describe("Test Store - Multiple Levels of Nested Keys", () => {
+  it("allows writing and reading multi-level nested keys", () => {
+    const store = new Store();
+    store.write("level1:level2:level3", "testValue");
+    expect(store.read("level1:level2:level3")).toBe("testValue");
+  });
+});
 
 /*
 
