@@ -79,54 +79,57 @@ Tests for both user and admin stores, focusing on nested store operations.
 
 */
 
-// describe("Nested Store Operations", () => {
-//   let userStore: UserStore;
-//   let adminStore: AdminStore;
+describe("Nested Store Operations", () => {
+  let userStore: UserStore;
+  let adminStore: AdminStore;
 
-//   beforeEach(() => {
-//     userStore = new UserStore();
-//     adminStore = new AdminStore(userStore);
-//   });
+  beforeEach(() => {
+    userStore = new UserStore();
+    adminStore = new AdminStore(userStore);
+  });
 
-//   it("should allow writing and reading nested keys in user store", () => {
-//     userStore.write("profile:name", "John Smith");
-//     expect(userStore.read("profile:name")).toBe("John Smith");
-//   });
+  //
+  it("should allow writing and reading nested keys in user store", () => {
+    userStore.write("profile:name", "John Smith");
+    expect(userStore.read("profile:name")).toBe("John Smith");
+  });
 
-//   it("should allow reading nested keys in admin store", () => {
-//     expect(adminStore.read("user:name")).toBe("John Doe");
-//   });
+  it("should allow reading nested keys in admin store", () => {
+    expect(adminStore.read("user:name")).toBe("John Doe");
+  });
 
-//   it("should allow writing and reading nested keys in user from admin store", () => {
-//     adminStore.write("user:profile:name", "John Smith");
-//     expect(adminStore.read("user:profile:name")).toBe("John Smith");
-//   });
+  // carrefull here the nested = we write the key as "profile:name"
+  it("should allow writing and reading nested keys in user from admin store", () => {
+    adminStore.write("user:profile:name", "John Smith");
+    expect(adminStore.read("user:profile:name")).toBe("John Smith");
+  });
 
-//   it("should disallow writing nested keys in admin store", () => {
-//     expect(() => adminStore.write("profile:name", "John Smith")).toThrow();
-//   });
+  it("should disallow writing nested keys in admin store", () => {
+    expect(() => adminStore.write("profile:name", "John Smith")).toThrow();
+  });
 
-//   it("should disallow reading nested keys in admin store", () => {
-//     expect(() => adminStore.read("profile:name")).toThrow();
-//   });
+  it("should disallow reading nested keys in admin store", () => {
+    expect(() => adminStore.read("profile:name")).toThrow();
+  });
 
-//   it("should write multiple entries to the store", () => {
-//     const store = new Store();
-//     const entries: JSONObject = { a: "value1", b: { c: "value2" } };
-//     store.writeEntries(entries);
-//     expect(store.read("a")).toBe("value1");
-//     expect(store.read("b:c")).toBe("value2");
-//   });
+  it("should write multiple entries to the store", () => {
+    const store = new Store();
+    const entries: JSONObject = { a: "value1", b: { c: "value2" } };
+    store.writeEntries(entries);
+    expect(store.read("a")).toBe("value1");
+    expect(store.read("b:c")).toBe("value2");
+  });
 
-//   it("should be able to loop on a store", () => {
-//     const store = new Store();
-//     const entries: JSONObject = { value: "value", store: { value: "value" } };
-//     store.write("deep", entries);
-//     const cStore = store.read("deep:store") as Store;
-//     cStore.write("deep", entries);
-//     expect(store.read("deep:store:deep:store:value")).toBe("value");
-//   });
-// });
+  it("should be able to loop on a store", () => {
+    const store = new Store();
+    const entries: JSONObject = { value: "value", store: { value: "value" } };
+    store.write("deep", entries);
+    // console.log(store.read("deep:store"))
+    const cStore = store.read("deep:store") as Store;
+    cStore.write("deep", entries);
+    expect(store.read("deep:store:deep:store:value")).toBe("value");
+  });
+});
 
 /*
 

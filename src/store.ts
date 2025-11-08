@@ -1,4 +1,4 @@
-import { JSONArray, JSONObject, JSONPrimitive } from "./json-types";
+import { JSONArray, JSONObject, JSONPrimitive, JSONValue } from "./json-types";
 
 export type Permission = "r" | "w" | "rw" | "none";
 
@@ -30,8 +30,8 @@ export function Restrict(policy: Permission = "none"): any {
         return this.read(/*key*/propertyKey)
       },
       set: function (this: Store, newVal: StoreValue) {
-        console.log(propertyKey)
-        console.log(newVal)
+        // console.log(propertyKey)
+        // console.log(newVal)
         this.policies.set(propertyKey, policy)
         this.values.set(propertyKey, newVal)
       },
@@ -93,24 +93,124 @@ export class Store implements IStore {
   }
 
   read(path: string): StoreResult {
+    if (!this.allowedToRead(path)) {
+      throw new Error("Not allowed to read");
+    }
 
-    if (this.allowedToRead(path))
-      return this.resolveValue(
-        this.values.get(path)
-      )
-    throw new Error("Not allowed to read");
+    const segments = path.split(":");
+    const firstKey = segments[0];
+    
+    let value = this.resolveValue(this.values.get(firstKey));
+    
+    // Simple key:value read
+    if (segments.length === 1) {
+      return value;
+    }
+    
+    // Navigate through nested stores
+    for (let i = 1; i < segments.length; i++) {
+      if (value instanceof Store) {
+        value = value.read(segments.slice(i).join(":"));
+        break; // The nested store handles the rest of the path
+      } else {
+        // TODO: Can we remove the else ?
+        throw new Error(`Cannot read property "${segments[i]}" of non-Store value`);
+      }
+    }
+    
+    return value;
   }
 
   write(path: string, value: StoreValue): StoreValue {
-    
-    this.policies.set(path, this.defaultPolicy)
-    this.values.set(path, value)
+    if (!this.allowedToWrite(path)) {
+      throw new Error("Not allowed to write");
+    }
 
-    return value
+    const segments = path.split(":");
+    const firstKey = segments[0];
+    
+    // If there's only one segment, write directly
+    if (segments.length === 1) {
+      // Convert JSONObject to Store
+      if (this.isJSONObject(value)) {
+        const nestedStore = new Store();
+        nestedStore.defaultPolicy = this.defaultPolicy;
+        nestedStore.writeEntries(value as JSONObject);
+        this.values.set(path, nestedStore);
+        return nestedStore;
+      }
+      
+      this.policies.set(path, this.defaultPolicy);
+      this.values.set(path, value);
+      return value;
+    }
+    
+    // For nested paths, ensure parent is as a Store
+    let parentStore = this.values.get(firstKey);
+
+    if (!parentStore) {
+      // Create a new nested store if it doesn't exist
+      const newStore = new Store();
+      newStore.defaultPolicy = this.defaultPolicy;
+      this.values.set(firstKey, newStore);
+      parentStore = newStore;
+    }
+
+    if (!(parentStore instanceof Store)) {
+      throw new Error(`Cannot write to nested path: "${firstKey}" is not a Store`);
+    }
+    
+    // Delegate to the nested store
+    return (parentStore as Store)
+      .write(
+        segments.slice(1).join(":"),
+        value
+      );
+  }
+
+  private isJSONObject(value: StoreValue): boolean {
+    return (
+      typeof value === "object" &&
+      value !== null &&
+      !Array.isArray(value) &&
+      !(value instanceof Store) &&
+      typeof value !== "function"
+    );
   }
 
   writeEntries(entries: JSONObject): void {
-    throw new Error("Method not implemented.");
+    const queue: Array<{ prefix: string; obj: JSONObject }> = [
+      {
+        obj: entries,
+        prefix: ""
+      }
+    ]
+
+    while (queue.length > 0) {
+      const { obj, prefix } = queue.shift()!
+
+      for (const [key, value] of Object.entries(obj)) {
+        // Here we construct nested key:
+        // if the actual key come from a nested. We glue together previous key with current one
+        const fullKey = prefix ? `${prefix}:${key}` : key;
+        
+        // warn: null and [] are consider by JS as "object" that's why we double-check
+        if (
+          typeof value === "object" &&
+          value !== null &&
+          !Array.isArray(value)
+        ) {
+          // if it's a nested object, we remove one nested level and add it to queue
+          queue.push({
+            obj: value,
+            prefix: fullKey
+          })
+        }
+        else {
+          this.write(fullKey, value)
+        }
+      }
+    }
   }
 
   entries(): JSONObject {
